@@ -1,0 +1,66 @@
+#board {
+	width: 432px;
+	height: 432px;
+    margin: 0 auto;
+    border: solid 1px black;
+}
+
+#information {
+    text-align: center;
+    font-size: 30;
+
+}
+
+.alertInformation {
+    -webkit-transition: color 3s;-moz-transition: color 3s;-ms-transition: color 3s;-o-transition: color 3s;transition: color 3s;
+    font-size: 40;
+    color: red;
+}
+
+.box {
+    width: 432px;
+    height: 100px;
+    margin: 0 auto;
+    border: 1px solid black;
+    background-color: #fbecdb;
+}
+.darkCell, .lightCell {
+	width: 50px;
+	height: 50px;
+	float: left; /* выравнивание по краю*/
+	padding:0px;
+	margin: 0px;
+	
+}
+.darkCell {
+	background-color: #6d3c0c; /*url('dark.png')*/ 
+	border: 2px solid #6d3c0c;
+}
+.lightCell {
+	background-color: #fbecdb; /* url('light.png');*/
+	border: 2px solid #fbecdb;
+}
+
+.checked {
+	border: 2px solid orangered;
+}
+
+.navigate {
+    /*border: 2px solid palegreen;*/
+    background-color: lightgreen;
+    border: 2px solid green;
+}
+
+.attack {
+    background-color: red;
+    border: 2px solid darkred;
+}
+
+
+/* рокировка */
+.castling {
+    background-color: yellow;
+    border: 2px solid yellowgreen;
+}
+
+
