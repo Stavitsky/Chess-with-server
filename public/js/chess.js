@@ -157,14 +157,22 @@ function ClickChecked(cell) {
     $('.attack').toggleClass('attack'); //удаляем варианты атаки
     $('.castling').toggleClass('castling'); //удаляем варианты рокировок
 }
-//конец хода
+//конец хода - СТАРАЯ ВЕРСИЯ
+/*
 function EndTurn (whiteMove){
     $('.navigate').toggleClass('navigate');
     $('.attack').toggleClass('attack');
     $('.castling').toggleClass('castling');
     return whiteMove = ToggleTurn(whiteMove); //переход хода
-
 }
+*/
+function EndTurn() {
+    $('.navigate').toggleClass('navigate');
+    $('.attack').toggleClass('attack');
+    $('.castling').toggleClass('castling');
+    canMove = false;
+}
+
 
 function RemoveClasses(){
     $('.navigate').toggleClass('navigate');
@@ -987,10 +995,13 @@ $(document).ready(function () {
         var typeOfFigure = Point(x,y,0,0).children().attr('type'); //проверяем тип фигуры
         var colorOfFigure = Point(x,y,0,0).children().attr('color'); //проверяем цвет фигуры
         var figure = Point(x,y,0,0).children();
-        Navigate(x,y,typeOfFigure,colorOfFigure);
-        if (MoveComp(figure, Point(x1,y1,0,0))) {
+
+        Navigate(x,y,typeOfFigure,colorOfFigure); //подсвечиваем допустимый маршрут (проверка на жульничество)
+
+        if (MoveComp(figure, Point(x1,y1,0,0))) { //если можно сходить
             InsertFigure(x1,y1,figure);
-        }        
+        }
+        canMove = true;        
     });
 
 
@@ -1039,14 +1050,16 @@ $(document).ready(function () {
             else if (checked && IsEmpty(this)) { //фигура выбрала, клик в пустую ячейку
 
                 if (Move(clFigure, this)) { //если ход можно совершить
-                    whiteMove = EndTurn(whiteMove);
+                    //whiteMove = EndTurn(whiteMove);
+                    EndTurn();
                 }
 
             }
             else if (checked && !IsEmpty(this)) {
                 Attack(this);
                 if (Move(clFigure,this)) {
-                    whiteMove = EndTurn(whiteMove);
+                    //whiteMove = EndTurn(whiteMove);
+                    EndTurn();
                 }
             }
 
