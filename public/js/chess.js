@@ -924,7 +924,8 @@ function Move (figure, where) {
         
         $(where).append(figure); //передвигаем картинку
 
-        socket.emit('step',xFigureCord,yFigureCord,xCord,yCord); //отправляем на сервер что и куда
+        //-1 т.к. по Машиному протоколу координаты 0-7, а не 1-8
+        socket.emit('step',xFigureCord-1,yFigureCord-1,xCord-1,yCord-1); //отправляем на сервер что и куда
 
         if (figureType == 'pawn' && (xCord == 1 || xCord == 8)) {
             PawnToQueen(where, figure);
@@ -1014,6 +1015,12 @@ $(document).ready(function () {
     });
 
     socket.on('step', function(x,y,x1,y1) {
+        
+        //+1 т.к. протокол взаимодействия 0-7, а а клиенте 1-8
+        x += 1;
+        y += 1;
+        x1 += 1;
+        y1 += 1;
         console.log('Received coodrs x: %d, y: %d, x1: %d, y1: %d', x,y,x1,y1);
         var typeOfFigure = Point(x,y,0,0).children().attr('type'); //проверяем тип фигуры
         var colorOfFigure = Point(x,y,0,0).children().attr('color'); //проверяем цвет фигуры
