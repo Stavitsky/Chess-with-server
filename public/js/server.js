@@ -4,18 +4,14 @@ var r = 1; //номер комнаты
 
 io.sockets.on('connection', function (socket) {
 	num++;
-	console.log ('Игрок подключен. Кол-во игроков: '+num);
-
-	if (num % 2 == 0) {
-		socket.join('room'+r);
+	console.log ('Игрок подключен к комнате room%d. Общее количество игроков %d', r, num);
+	
+	socket.join('room'+r);
+	if (io.sockets.clients('room'+r).length > 1) {
 		socket.broadcast.in('room'+r).emit('start', 'white');
 		socket.emit('start', 'black');
-		console.log ('Игрок отправлен в комнату '+r);
+		console.log('Игра начилась!');
 		r++;
-	} else {
-		socket.join('room'+r);
-		console.log ('Игрок отправлен в комнату '+r);
-		
 	}
 
 	socket.on ('step', function (x,y,x1,y1) {
@@ -35,7 +31,5 @@ io.sockets.on('connection', function (socket) {
 		r--;
 		console.log ('Игрок отключен. Кол-во игроков: '+num);
 		socket.broadcast.in('room'+r).emit('disconnect');
-
-
 	});
 });
