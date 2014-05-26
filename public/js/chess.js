@@ -867,11 +867,11 @@ function MoveComp (figure, where) {
     var yFigureCord = $(figure).parent().attr('y');
     var xCord = $(where).attr('x');
     var yCord = $(where).attr('y');
+    var goalFigure = $(where).children(); //атакуемая фигура
 
     if ($(where).hasClass('navigate')) {
         UncheckRed($(figure).parent()); //снимаем выделение
-        
-
+     
         if (figureType == 'pawn' && (xCord == 1 || xCord == 8)) {
             PawnToQueen(where, figure);
         }
@@ -880,6 +880,26 @@ function MoveComp (figure, where) {
         }
         RemoveClasses();
         return true; //успех
+    }
+    else if ($(where).hasClass('attack')) {
+        UncheckRed($(figure).parent()); //снимаем выделение
+        goalFigure.remove(); //удаляем фигуру
+        where.removeClass('attack'); //удаляем класс атаки
+        where.addClass('navigate'); //добавляем navigate, чтобы можно было сюда шагнуть
+
+        if (figureColor == 'white') { //если цвет был черный
+            $('#boxForBlack').append(goalFigure); //в отделение для захваченных черных
+        } else {
+            $('#boxForWhite').append(goalFigure); //для белых
+        }
+        if (figureType == 'pawn' && (xCord == 1 || xCord == 8)) {
+            PawnToQueen(where, figure);
+        }
+        if (IsShah(xCord,yCord, $(clFigure).attr('type'), $(clFigure).attr('color'))) {
+            alert ('Shah!');
+        }
+        RemoveClasses();
+        return true;
     }
     else {
         alert ('Can\'t move here!');
@@ -967,13 +987,9 @@ function Attack (attackedCell) {
         } else {
             $('#boxForWhite').append(attackedFigure); //для белых
         }
-
-
     } else {
         alert('Can\'t attack!');
     }
-
-
 }
 
 $(document).ready(function () {
@@ -995,11 +1011,14 @@ $(document).ready(function () {
         var typeOfFigure = Point(x,y,0,0).children().attr('type'); //проверяем тип фигуры
         var colorOfFigure = Point(x,y,0,0).children().attr('color'); //проверяем цвет фигуры
         var figure = Point(x,y,0,0).children();
+        var goalCell = Point(x1,y1,0,0);
 
         Navigate(x,y,typeOfFigure,colorOfFigure); //подсвечиваем допустимый маршрут (проверка на жульничество)
 
         if (MoveComp(figure, Point(x1,y1,0,0))) { //если можно сходить
             InsertFigure(x1,y1,figure);
+        } else {
+            Attack(goalCell);
         }
         canMove = true;        
     });
