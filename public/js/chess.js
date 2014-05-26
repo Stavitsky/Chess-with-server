@@ -147,7 +147,7 @@ function CheckRed (cell) {
 //снять отметку с фигуры
 function UncheckRed (cell) {
     $(cell).removeClass('checked');
-    $('.attack').toggleClass('attack');
+    $('.attack').removeClass('attack');
     checked = false; //снимаем флаг выбранной фигуры
 }
 //повторный клик по уже выбранной фигуре
@@ -166,7 +166,11 @@ function EndTurn (whiteMove){
 
 }
 
-
+function RemoveClasses(){
+    $('.navigate').toggleClass('navigate');
+    $('.attack').toggleClass('attack');
+    $('.castling').toggleClass('castling');
+}
 //метод для выборки квадратов для подсвечивания атакой или навигацией
 function Point(x,y,i1, i2) {
     return $('[x='+ (parseInt(x)+i1) + '][y='+(parseInt(y)+i2)+']');
@@ -845,7 +849,39 @@ function Navigate (x,y,type,color) {
 
     }
 }
-//движение фигуры
+
+//движение фигуры соперником
+function MoveComp (figure, where) {
+
+    var figureType = $(figure).attr('type');
+    var figureColor = $(figure).attr('color');
+    var xFigureCord = $(figure).parent().attr('x');
+    var yFigureCord = $(figure).parent().attr('y');
+    var xCord = $(where).attr('x');
+    var yCord = $(where).attr('y');
+
+    if ($(where).hasClass('navigate')) {
+        UncheckRed($(figure).parent()); //снимаем выделение
+        
+
+        if (figureType == 'pawn' && (xCord == 1 || xCord == 8)) {
+            PawnToQueen(where, figure);
+        }
+        if (IsShah(xCord,yCord, $(figure).attr('type'), $(figure).attr('color'))) {
+            alert ('Shah!');
+        }
+        RemoveClasses();
+        return true; //успех
+    }
+    else {
+        alert ('Can\'t move here!');
+        RemoveClasses();
+        return false;
+  }
+
+}
+
+//движение фигуры игроком
 function Move (figure, where) {
 
     var figureType = $(figure).attr('type');
@@ -858,7 +894,7 @@ function Move (figure, where) {
     if ($(where).hasClass('navigate')) {
         UncheckRed($(figure).parent()); //снимаем выделение
         
-        //$(where).append(figure); //передвигаем картинку
+        $(where).append(figure); //передвигаем картинку
 
         socket.emit('step',xFigureCord,yFigureCord,xCord,yCord); //отправляем на сервер что и куда
 
@@ -880,10 +916,8 @@ function Move (figure, where) {
         }
         UncheckRed($(figure).parent()); //снимаем выделение
         
-        //$(where).append(figure);
+        $(where).append(figure);
 
-        socket.emit('step',xFigureCord,yFigureCord,xCord,yCord); //отправляем на сервер что и куда
-        
         if (yCord == 7) { //короткая рокировка
             var tmpRook = Point(xRookCord,8,0,0).children() [0];
             InsertFigure(xRookCord,6,tmpRook);
@@ -950,7 +984,13 @@ $(document).ready(function () {
 
     socket.on('step', function(x,y,x1,y1) {
         console.log('Received coodrs x: %d, y: %d, x1: %d, y1: %d', x,y,x1,y1);
-        
+        var typeOfFigure = Point(x,y,0,0).children().attr('type'); //проверяем тип фигуры
+        var colorOfFigure = Point(x,y,0,0).children().attr('color'); //проверяем цвет фигуры
+        var figure = Point(x,y,0,0).children();
+        Navigate(x,y,typeOfFigure,colorOfFigure);
+        if (MoveComp(figure, Point(x1,y1,0,0))) {
+            InsertFigure(x1,y1,figure);
+        }        
     });
 
 
