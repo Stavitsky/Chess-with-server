@@ -971,12 +971,11 @@ function Attack (attackedCell) {
 
         if (attackedFigure.attr('type') == 'king') {
             ClearBoard();
-            if (confirm(attackedFigureColor + ' lose! Do you want to play again?')) { //хотите сыграть еще?
-                window.location.reload();
-            }
-            else {
-                window.close();
-            }
+
+            socket.emit('finish'); //отправляем конец игры
+            alert('Congratulations! You win.');
+            location.reload();
+
         }
         //удаляем класс "атакуемая" и добавляем класс "навигация"
         //для того, чтобы можно было в неё перейти после удаления фигуры
@@ -995,14 +994,22 @@ function Attack (attackedCell) {
 $(document).ready(function () {
 
     socket.on('start',function(color) {
+
+        ClearBoard();
+        Dotting(); //пока нет второго игрока - фигур не будет
+
         if (color == 'white') {
             whiteMove = true;
             canMove = true;
             console.log('White move!');
+            $('#information').text('You play ' + color +'.');
+
+
         } else {
             whiteMove = false;
             canMove = false;
             console.log('Black move!');
+            $('#information').text('You play ' + color +'.');
         }
     });
 
@@ -1023,13 +1030,19 @@ $(document).ready(function () {
         canMove = true;        
     });
 
+    socket.on('finish', function(){
+        console.log('lose catched!');
+        alert('You lose!');
+        window.close();
+    });
+
+    socket.on('disconnect', function() {
+        alert('Competitor disconnected. You win!');
+        location.reload();
+    });
 
 	CreateBoard (8,8); //создать доску 8х8
-	Dotting(); //расставить фигуры
-
     var cell = '.darkCell,.lightCell'; //cell - это элементы с классами dC и lC
-
-
 
     $('#board').on('click', cell, function(){ //в случае клика по ячейке внутри board
         if (canMove) {
@@ -1048,7 +1061,7 @@ $(document).ready(function () {
                     //checked = true; //флаг выбранной фигуры
 
                 } else if (whiteMove && clFigureColor != 'white') { //если ход белых, а фигура черная
-                    $('#information').toggleClass('alertInformation');
+                    //$('#information').toggleClass('alertInformation');
                     //alert ('Error! It\'s white turn!');
                 }
                 else if (!whiteMove && clFigureColor == 'black') {
@@ -1058,7 +1071,7 @@ $(document).ready(function () {
                     checked = true;
                 }
                 else if (!whiteMove && clFigureColor == 'white') { //если ход черных, а фигура белая
-                    $('#information').toggleClass('alertInformation');
+                    $//('#information').toggleClass('alertInformation');
                     //alert ('Error! It\'s black turn!');
                 }
             }
@@ -1080,14 +1093,6 @@ $(document).ready(function () {
                     //whiteMove = EndTurn(whiteMove);
                     EndTurn();
                 }
-            }
-
-            if (whiteMove) {
-                //$('#information').removeClass('alertInformation'); //удаляем выделение, если оно было
-                $('#information').text('White\'s move!');
-            } else {
-                //$('#information').removeClass('alertInformation');
-                $('#information').text('Black\'s move!');
             }
         }
     });

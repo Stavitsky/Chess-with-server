@@ -23,12 +23,19 @@ io.sockets.on('connection', function (socket) {
 		socket.broadcast.in('room'+(r-1).toString()).emit('step',parseInt(x),parseInt(y),parseInt(x1),parseInt(y1));
 	});
 
+	socket.on('finish', function() {
+		socket.broadcast.in('room'+(r-1)).emit('finish');
+		console.log('lose sent!');
+	});
 
 
 	socket.on('disconnect', function () {
 		num--;
 		socket.leave('room'+r);
 		r--;
-		console.log ('Игрок отключен. Кол-во игроков: '+num); 
+		console.log ('Игрок отключен. Кол-во игроков: '+num);
+		socket.broadcast.in('room'+r).emit('disconnect');
+
+
 	});
 });
