@@ -1,4 +1,4 @@
-var io = require('socket.io').listen(8080);
+var io = require('socket.io').listen(8080, '0.0.0.0');
 var r = 1; //номер комнаты
 
 io.sockets.on('connection', function (socket) {
@@ -7,16 +7,7 @@ io.sockets.on('connection', function (socket) {
 
 	socket.join('room'+r);
 	
-	for (var key in io.sockets.manager.roomClients[socket.id]) {
-		console.log ('key!!!!!!: '+ key + ' io.sockets.manager.roomClients[socket.id][key]: ' + io.sockets.manager.roomClients[socket.id][key]);
-	}
-
-	//console.log('io.sockets.manager.roomClients[socket.id]: '+io.sockets.manager.roomClients[socket.id]);
-
-	closedRooms ['room'+r] = 0; //0 - не закрыта
-	console.log('добавлено в массив: '+closedRooms['room'+r]);
-
-	//console.log ('Игрок подключен в комнату room'+r);
+	closedRooms ['room'+r] = 0; //0 - не закрыта;
 
 	roomsArr = io.sockets.manager.rooms; //массив всех комнат
 
@@ -25,13 +16,12 @@ io.sockets.on('connection', function (socket) {
 		//slice нужен, т.к. room возвращает комнату в формате '/room1',
 		//а *.in() требует просто room. Срезаем '/''
 		_room = room.slice(1,room.length);
-		//console.log('Игроков в комнате '+room+': '+gamersNum);
 		if (room != '') { //комната с пустым именем - общая комната со всеми сокетами
 			//console.log ('room: ' +room + ' arr[room]: '+roomsArr[room]+' игроков в комнате: '+roomsArr[room].length);
 			if ((gamersNum == 2) && (closedRooms[_room] == 0)) {
 				socket.broadcast.in(_room).emit('start', 'white');
 				socket.emit('start', 'black'); //отправляем сообщение о старте игры
-				//console.log('Игра началась в комнате'+room+'!');
+				console.log('Игра началась в комнате'+room+'!');
 				closedRooms[_room] = 1;
 				r++;
 			}
@@ -54,21 +44,30 @@ io.sockets.on('connection', function (socket) {
 		
 	});
 
+	socket.on('cheatCatch', function() {
+		for (var room in io.sockets.manager.roomClients[socket.id]) { //проход по всем комнатам
+			if (room != '') { //если не главная (с пустым названием)
+				_room = room.slice(1,room.length); //отрезаем '/'
+				r = 1; //откатываем стартовую комнату на первую
+				closedRooms[_room] = 0; //комната свободна
+				socket.broadcast.in(_room).emit('finish'); //рассылаем команду "финиш"
+			}
+		}
+	});
+
 	socket.on('finish', function() {
 		for (var room in io.sockets.manager.roomClients[socket.id]) { //проход по всем комнатам
 			if (room != '') { //если не главная (с пустым названием)
 				_room = room.slice(1,room.length); //отрезаем '/'
 				r = 1; //откатываем стартовую комнату на первую
-				losedRooms[_room] = 0; //комната свободна
+				closedRooms[_room] = 0; //комната свободна
 				socket.broadcast.in(_room).emit('finish'); //рассылаем команду "финиш"
-
 			}
 		}
 	});
 
-
 	socket.on('disconnect', function () {
-		for (var room in io.sockets.manager.roomClients[socket.id]) { //проход по всем комнатам
+		for (var room in io.sockets.manager.roomClients[socket.id]) { //проход по всем комнатам в которых сидит данный игрок
 			if (room != '') { //если не главная (с пустым названием)
 				_room = room.slice(1,room.length); //отрезаем '/'
 				r = 1;	 //откатываем стартовую комнату на первую

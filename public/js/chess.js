@@ -1,7 +1,7 @@
 //флажок на цвет
 //флажок на выбранную фигуру
 
-var socket = io.connect('http://localhost:8080/');
+var socket = io.connect('http://localhost:8080/'); //('http://192.168.1.108:8080/'); - для игры с разных компов
 
 /*
  pawn - пешка
@@ -157,15 +157,7 @@ function ClickChecked(cell) {
     $('.attack').toggleClass('attack'); //удаляем варианты атаки
     $('.castling').toggleClass('castling'); //удаляем варианты рокировок
 }
-//конец хода - СТАРАЯ ВЕРСИЯ
-/*
-function EndTurn (whiteMove){
-    $('.navigate').toggleClass('navigate');
-    $('.attack').toggleClass('attack');
-    $('.castling').toggleClass('castling');
-    return whiteMove = ToggleTurn(whiteMove); //переход хода
-}
-*/
+
 function EndTurn() {
     $('.navigate').toggleClass('navigate');
     $('.attack').toggleClass('attack');
@@ -179,7 +171,9 @@ function RemoveClasses(){
     $('.attack').toggleClass('attack');
     $('.castling').toggleClass('castling');
 }
+
 //метод для выборки квадратов для подсвечивания атакой или навигацией
+
 function Point(x,y,i1, i2) {
     return $('[x='+ (parseInt(x)+i1) + '][y='+(parseInt(y)+i2)+']');
 }
@@ -233,7 +227,6 @@ function BitshopShahLogic(x,y,color){
             break;
         }
     }
-
 }
 function RookShahLogic (x,y,color) {
     //подсветка предлагаемых ячеек ниже фигуры
@@ -282,7 +275,6 @@ function RookShahLogic (x,y,color) {
             break;
         }
     }
-
 }
 
 //проверка на шах
@@ -902,7 +894,7 @@ function MoveComp (figure, where) {
         return true;
     }
     else {
-        alert ('Can\'t move here!');
+        //alert ('Can\'t move here!');
         RemoveClasses();
         return false;
   }
@@ -959,7 +951,7 @@ function Move (figure, where) {
         }
     }
     else {
-        alert ('Can\'t move here!');
+        //alert ('Can\'t move here!');
         return false;
   }
 
@@ -1032,7 +1024,9 @@ $(document).ready(function () {
         if (MoveComp(figure, Point(x1,y1,0,0))) { //если можно сходить
             InsertFigure(x1,y1,figure);
         } else {
-            Attack(goalCell);
+            //Attack(goalCell);
+            alert('Competitor try to cheat. You win!');
+            socket.emit('cheatCatch');
         }
         canMove = true;        
     });
