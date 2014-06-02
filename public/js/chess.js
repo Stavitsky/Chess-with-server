@@ -1,7 +1,7 @@
 //флажок на цвет
 //флажок на выбранную фигуру
 
-var socket = io.connect('http://localhost:8080/'); //('http://192.168.1.108:8080/'); - для игры с разных компов
+var socket = io.connect('http://localhost:8888/'); //('http://192.168.1.108:8080/'); - для игры с разных компов
 
 /*
  pawn - пешка
@@ -122,6 +122,106 @@ function Dotting () {
             }
         }
     }
+}
+
+function MateCheck (currentColor) {
+    for (i = 1; i < 9; i++) {
+        for (j = 1; j < 9; j ++) {
+            if (Point(i,j,0,0).children().attr('type') == 'king') {
+                if (Point(i,j,0,0).children().attr('color') == 'white') {
+                    var xCordWhiteKing = i;
+                    var yCordWhiteKing = j;
+                } 
+                else {
+                    var xCordBlackKing = i;
+                    var yCordBlackKing = j;
+                }
+            }
+        }
+    }
+
+    var goalCellsOfKing = [];
+
+    if (currentColor == 'white') {
+
+
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, 1, 0))) {
+            if (xCordWBlackKing + 1 < 9) { //если координата не выходит за пределы поля
+                var goalCell1 = Point (xCordBlackKing, yCordBlackKing, 1, 0); //если клетка пустая
+                goalCellsOfKing.push(goalCell1);   //добавляем целевую ячейку короля в массив 
+            }
+                
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, 1, 1))) {
+            if (xCordBlackKing + 1 < 9 && yCordBlackKing + 1 < 9) {
+                var goalCell2 = Point (xCordBlackKing, yCordBlackKing, 1, 1);
+                goalCellsOfKing.push(goalCell2);    
+            }
+                
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, 0, 1))) {
+            if (yCordBlackKing + 1 < 9) {
+                var goalCell3 = Point (xCordBlackKing, yCordBlackKing, 0, 1);
+                goalCellsOfKing.push(goalCell3);   
+            }
+                 
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, -1, 1))) {
+            if (xCordBlackKing - 1 > 0 && yCordBlackKing + 1 < 9) {
+                var goalCell4 = Point (xCordBlackKing, yCordBlackKing, -1, 1);
+                goalCellsOfKing.push(goalCell4);  
+
+            }
+                 
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, -1, 0))) {
+            if (xCordBlackKing - 1 > 0) {
+                var goalCell5 = Point (xCordBlackKing, yCordBlackKing, -1, 0); 
+                goalCellsOfKing.push(goalCell5);   
+            }
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, -1, -1))) {
+            if (xCordBlackKing - 1 > 0 && yCordBlackKing - 1 > 0) {
+               var goalCell6 = Point (xCordBlackKing, yCordBlackKing, -1, -1);
+                goalCellsOfKing.push(goalCell6);  
+            }
+                   
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, 0, -1))) {
+            if (yCordBlackKing - 1 > 0) {
+                var goalCell7 = Point (xCordBlackKing, yCordBlackKing, 0, -1); 
+                goalCellsOfKing.push(goalCell7);    
+            }
+               
+        }
+        if (IsEmpty(Point (xCordBlackKing, yCordBlackKing, 1, -1))) {
+            if (xCordBlackKing + 1 < 9 && yCordBlackKing - 1 > 0) {
+                var goalCell8 = Point (xCordBlackKing, yCordBlackKing, 1, -1); 
+                goalCellsOfKing.push(goalCell8); 
+            }                
+        }
+
+        for (var i = 1; i < 9; i++) {
+            for (var j = 1; j < 9; j++) {
+                
+
+                if ((Point(i,j,0,0).children().attr('color') == 'white') && (goalCellsOfKing.length != 0)) {
+                    var fType = Point(i,j,0,0).children().attr('type');
+                    Navigate(i,j,fType,'white'); //прокладываем путь для каждой белой фигуры
+                    for (var m = 0; m < goalCellsOfKing.length; m++ ) {
+                        if (goalCellsOfKing[m].hasClass('navigate')) {
+                            goalCellsOfKing.splice(m,1); //удаляем вариант хода короля
+                        }
+                    }
+                    RemoveClasses();
+                }
+            }
+        }
+    }
+    if (goalCellsOfKing.length == 0) { //если ходов не под атакой не осталось
+        return true;
+    }
+    return false;
 }
 
 function PawnToQueen(where, figure){
@@ -452,7 +552,7 @@ function BitshopMoveLogic(x,y,color){
         } else  {
             if ($(goalCell1).children().attr('color') != color) {
                 goalCell1.toggleClass('attack');
-                ShahCheck(goalCell1, color); //проверка на шах
+                //ShahCheck(goalCell1, color); //проверка на шах
             }
             break;
         }
@@ -466,7 +566,7 @@ function BitshopMoveLogic(x,y,color){
         } else {
             if ($(goalCell2).children().attr('color') != color) {
                 goalCell2.toggleClass('attack');
-                ShahCheck(goalCell2, color); //проверка на шах
+                //ShahCheck(goalCell2, color); //проверка на шах
             }
             break;
         }
@@ -480,7 +580,7 @@ function BitshopMoveLogic(x,y,color){
         } else {
             if ($(goalCell3).children().attr('color') != color) {
                 goalCell3.toggleClass('attack');
-                ShahCheck(goalCell3, color); //проверка на шах
+                //ShahCheck(goalCell3, color); //проверка на шах
             }
             break;
         }
@@ -494,7 +594,7 @@ function BitshopMoveLogic(x,y,color){
         } else {
             if ($(goalCell4).children().attr('color') != color) {
                 goalCell4.toggleClass('attack');
-                ShahCheck(goalCell4, color); //проверка на шах
+                //ShahCheck(goalCell4, color); //проверка на шах
             }
             break;
         }
@@ -868,7 +968,11 @@ function MoveComp (figure, where) {
             PawnToQueen(where, figure);
         }
         if (IsShah(xCord,yCord, $(figure).attr('type'), $(figure).attr('color'))) {
-            alert ('Shah!');
+            if (MateCheck(figureColor)) {
+                alert ('Shah and mate!');
+            } else {
+                alert ('Shah to '+$(clFigure).attr('color'));
+            }
         }
         RemoveClasses();
         return true; //успех
@@ -888,7 +992,7 @@ function MoveComp (figure, where) {
             PawnToQueen(where, figure);
         }
         if (IsShah(xCord,yCord, $(clFigure).attr('type'), $(clFigure).attr('color'))) {
-            alert ('Shah!');
+            alert ('Shah to '+$(clFigure).attr('color'));
         }
         RemoveClasses();
         return true;
@@ -923,7 +1027,12 @@ function Move (figure, where) {
             PawnToQueen(where, figure);
         }
         if (IsShah(xCord,yCord, $(clFigure).attr('type'), $(clFigure).attr('color'))) {
-            alert ('Shah!');
+            RemoveClasses();
+            if (MateCheck(figureColor)) {
+                alert ('Shah and mate!');
+            } else {
+                alert ('Shah from '+$(clFigure).attr('color'));
+            }
         }
         return true; //успех
     }

@@ -1,4 +1,4 @@
-var io = require('socket.io').listen(8080, '0.0.0.0');
+var io = require('socket.io').listen(8888, '0.0.0.0');
 var r = 1; //номер комнаты
 
 io.sockets.on('connection', function (socket) {
@@ -38,6 +38,7 @@ io.sockets.on('connection', function (socket) {
 		for (var room in io.sockets.manager.roomClients[socket.id]) { //проход по всем комнатам
 			if (room != '') { //если не главная (с пустым названием)
 				_room = room.slice(1,room.length); //отрезаем '/'
+				//socket.emit('step',parseInt(x),parseInt(y),parseInt(x1),parseInt(y1)); //удалить
 				socket.broadcast.in(_room).emit('step',parseInt(x),parseInt(y),parseInt(x1),parseInt(y1)); //передаем данные клиенту в комнату из которой они пришли
 			}
 		} 
