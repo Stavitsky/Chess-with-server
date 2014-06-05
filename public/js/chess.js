@@ -80,9 +80,11 @@ function Dotting () {
             //пешки
             if (i == 2) {
                 //InsertFigure(i,j,whitePawn);
+                //InsertFigure (i,j,blackPawn);
             }
             else if (i == 7) {
                 //InsertFigure (i,j,blackPawn);
+                //InsertFigure(i,j,whitePawn);
             }
             //черные фигуры первого ряда
             else if (i == 1) {
@@ -124,30 +126,76 @@ function Dotting () {
     }
 }
 
+//x,y - координаты, где стоит король, param - действие
+function HideShowKing (x, y, param) {
+    if (param == 'h') {
+        Point (x,y,0,0).children().hide();
+    } else if (param == 's') {
+        Point (x,y,0,0).children().show();
+    }
+    
+}
+
+
+
 //x хода, y хода, цвет короля
 function ShahCheckAfterKingMove(x,y,currentColor) {
+    var _x = x;
+    var _y = y;
+
+    for (i = 1; i < 9; i++) {
+        for (j = 1; j < 9; j ++) {
+            if (Point(i,j,0,0).children().attr('type') == 'king') {
+                if (Point(i,j,0,0).children().attr('color') == 'white') {
+                    var xCordWhiteKing = i;
+                    var yCordWhiteKing = j;
+                } 
+                else {
+                    var xCordBlackKing = i;
+                    var yCordBlackKing = j;
+                }
+            }
+        }
+    }
+
+
+    var xCordOfCheckedKing;
+    var yCordOfCheckedKing; 
     var _color;
+
     if (currentColor == 'white') {
         _color = 'black';
+        xCordOfCheckedKing = xCordWhiteKing;
+        yCordOfCheckedKing = yCordWhiteKing;        
     } else {
         _color = 'white';
+        xCordOfCheckedKing = xCordBlackKing;
+        yCordOfCheckedKing = yCordBlackKing;
     }
+
+
 
     for (var i = 1; i < 9; i++) {
         for (var j = 1; j < 9; j++) {
             if ((!IsEmpty(Point(i,j,0,0))) && (Point(i,j,0,0).children().attr('color') == _color)) {
                 var fType = Point(i,j,0,0).children().attr('type');
-
-                Navigate(i,j,fType,_color); //прокладываем путь для каждой фигуры цвета агрессора
-                if (Point(x,y,0,0).hasClass('navigate')) {
-                    return true;
+                if (fType != 'king') {
+                    HideShowKing(xCordOfCheckedKing, yCordOfCheckedKing, 'h'); //скрываем короля
+                    Navigate(i,j,fType,_color); //прокладываем путь для каждой фигуры цвета агрессора
+                    if (Point(_x,_y,0,0).hasClass('navigate')) {
+                        RemoveClasses();
+                        HideShowKing(xCordOfCheckedKing,yCordOfCheckedKing,'s');
+                        return true;
+                    }
                 }
-            RemoveClasses();
+                RemoveClasses();
+                HideShowKing(xCordOfCheckedKing,yCordOfCheckedKing,'s');
             }
         }
     }
     return false;
 }
+
 
 
 //пережаем цвет фигуры-акгрессора
@@ -179,9 +227,9 @@ function MateCheck (currentColor) {
         xCordOfAttackedKing = xCordWhiteKing;
         yCordOfAttackedKing = yCordWhiteKing;
 
-    }
-        
+    }   
 
+        var goalCellsOfKing = [];
 
         if (IsEmpty(Point (xCordOfAttackedKing, yCordOfAttackedKing, 1, 0))) {
             if (xCordOfAttackedKing + 1 < 9) { //если координата не выходит за пределы поля
@@ -658,7 +706,7 @@ function ToggleTurn (turn) {
 
 //проверка ячейки на наличие фигурки
 function IsEmpty (cell) {
-    if ($(cell).find('img').length == 0) return true;
+    if (($(cell).find('img').length == 0) || !$(cell).children().is(':visible')) return true;
     return false;
 }
 //отрисовка логики ходов для фигур
@@ -923,77 +971,131 @@ function Navigate (x,y,type,color) {
         var goalCell7 = Point(x,y,-1,1);
         var goalCell8 = Point(x,y,0,1);*/
 
+        //переменные для проверки возможности хода
+        var goalCell1_go = goalCell2_go = goalCell3_go = goalCell4_go =goalCell5_go = goalCell6_go = goalCell7_go = goalCell8_go = false;
 
-        if ((IsEmpty(goalCell1)) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y)+1,color))) {
-            goalCell1.toggleClass('navigate');
+
+        if ((parseInt(x)+1 < 9) && (parseInt(y)+1 < 9)) {
+            if (IsEmpty(goalCell1) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y)+1,color))) {
+                //goalCell1.toggleClass('navigate');
+                goalCell1_go = true;
+            }
+            else  {
+                if ($(goalCell1).children().attr('color') != color) {
+                    goalCell1.toggleClass('attack');
+                }      
+            }
         }
-        else  {
-            if (($(goalCell1).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y)+1,color))) {
-                goalCell1.toggleClass('attack');
+           
+
+        if (parseInt(x)+1 < 9) {
+            if ((IsEmpty(goalCell2)) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y),color))) {
+                //goalCell2.toggleClass('navigate');
+                goalCell2_go = true;
+            }
+            else  {
+                if ($(goalCell2).children().attr('color') != color) {
+                    goalCell2.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell2)) && (!ShahCheckAfterKingMove(parseInt(x)+1,y,color))) {
-            goalCell2.toggleClass('navigate');
-        }
-        else  {
-            if (($(goalCell2).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)+1,y,color))) {
-                goalCell2.toggleClass('attack');
+        if ((parseInt(x)+1 < 9) && (parseInt(y)-1 > 0)) {
+            if ((IsEmpty(goalCell3)) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y)-1,color))) {
+                //goalCell3.toggleClass('navigate');
+                goalCell3_go = true;
+            }
+            else  {
+                if ($(goalCell3).children().attr('color') != color) {
+                    goalCell3.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell3)) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y)-1,color))) {
-            goalCell3.toggleClass('navigate');
-        }
-        else  {
-            if (($(goalCell3).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)+1,parseInt(y)-1,color))) {
-                goalCell3.toggleClass('attack');
+        if (parseInt(y)-1 > 0) {
+            if ((IsEmpty(goalCell4)) && (!ShahCheckAfterKingMove(parseInt(x),parseInt(y)-1,color))) {
+                //goalCell4.toggleClass('navigate');
+                goalCell4_go = true;
+            }
+            else  {
+                if ($(goalCell4).children().attr('color') != color) {
+                    goalCell4.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell4)) && (!ShahCheckAfterKingMove(x,parseInt(y)-1,color))) {
-            goalCell4.toggleClass('navigate');
-        }
-        else  {
-            if (($(goalCell4).children().attr('color') != color) && (!ShahCheckAfterKingMove(x,parseInt(y)-1,color))) {
-                goalCell4.toggleClass('attack');
+        if ((parseInt(x)-1 > 0) && (parseInt(y)-1 > 0)) {
+            if ((IsEmpty(goalCell5)) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)-1,color))) {
+                //goalCell5.toggleClass('navigate');
+                goalCell5_go = true;
+            }
+            else  {
+                if (($(goalCell5).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)-1,color))) {
+                    goalCell5.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell5)) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)-1,color))) {
-            goalCell5.toggleClass('navigate');
-        }
-        else  {
-            if (($(goalCell5).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)-1,color))) {
-                goalCell5.toggleClass('attack');
+        if (parseInt(x)-1>0)  {
+            if ((IsEmpty(goalCell6)) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y),color))) {
+             //   goalCell6.toggleClass('navigate');
+                goalCell6_go = true;
+            }
+            else  {
+                if ($(goalCell6).children().attr('color') != color) {
+                    goalCell6.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell6)) && (!ShahCheckAfterKingMove(parseInt(x)-1,y,color))) {
-            goalCell6.toggleClass('navigate');
-        }
-        else  {
-            if (($(goalCell6).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)-1,y,color))) {
-                goalCell6.toggleClass('attack');
+        if ((parseInt(x)-1 > 0) && (parseInt(y)+1 < 9 )) {
+            if ((IsEmpty(goalCell7)) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)+1,color))){
+                //goalCell7.toggleClass('navigate');
+                goalCell7_go = true;
+            }
+            else  {
+                if (($(goalCell7).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)+1,color))) {
+                    goalCell7.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell7)) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)+1,color))){
-            goalCell7.toggleClass('navigate');
-        }
-        else  {
-            if (($(goalCell7).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x)-1,parseInt(y)+1,color))) {
-                goalCell7.toggleClass('attack');
+        if (parseInt(y)+1 <9) {
+            if ((IsEmpty(goalCell8)) && (!ShahCheckAfterKingMove(parseInt(x),parseInt(y)+1,color))) {
+                //goalCell8.toggleClass('navigate');
+                goalCell8_go = true;
+            }
+            else  {
+                if (($(goalCell8).children().attr('color') != color) && (!ShahCheckAfterKingMove(parseInt(x),parseInt(y)+1,color))) {
+                    goalCell8.toggleClass('attack');
+                }
             }
         }
 
-        if ((IsEmpty(goalCell8)) && (!ShahCheckAfterKingMove(x,parseInt(y)+1,color))) {
-            goalCell8.toggleClass('navigate');
+        //подсветка доступных для хода клеток
+        if (goalCell1_go) {
+            goalCell1.addClass('navigate');
         }
-        else  {
-            if (($(goalCell8).children().attr('color') != color) && (!ShahCheckAfterKingMove(x,parseInt(y)+1,color))) {
-                goalCell8.toggleClass('attack');
-            }
+        if (goalCell2_go) {
+            goalCell2.addClass('navigate');
+        }
+        if (goalCell3_go) {
+            goalCell3.addClass('navigate');
+        }
+        if (goalCell4_go) {
+            goalCell4.addClass('navigate');
+        }
+        if (goalCell5_go) {
+            goalCell5.addClass('navigate');
+        }
+        if (goalCell6_go) {
+            goalCell6.addClass('navigate');
+        }
+        if (goalCell7_go) {
+            goalCell7.addClass('navigate');
+        }
+        if (goalCell8_go) {
+            goalCell8.addClass('navigate');
         }
 
     }
