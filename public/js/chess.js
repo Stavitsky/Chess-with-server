@@ -200,7 +200,7 @@ function ShahCheckBeforeKingMove(x,y,currentColor) {
                 var fType = Point(i,j,0,0).children().attr('type');
                 if (fType != 'king') {
                     HideShowKing(xCordOfCheckedKing, yCordOfCheckedKing, 'h'); //скрываем короля
-                    Navigate(i,j,fType,_color); //прокладываем путь для каждой фигуры цвета агрессора
+                    Navigate(parseInt(i),parseInt(j),fType,_color); //прокладываем путь для каждой фигуры цвета агрессора
                     if (Point(_x,_y,0,0).hasClass('navigate')) {
                         RemoveClasses();
                         HideShowKing(xCordOfCheckedKing,yCordOfCheckedKing,'s');
@@ -218,13 +218,13 @@ function ShahCheckBeforeKingMove(x,y,currentColor) {
 
 //функция для проверки длины пути до агрессора
 //параметры - координаты короля под атакой
-function CheckPathLength (x_k, y_k, x_a, y_a) {
-    
+function CheckPathLength (x_k, y_k, x_a, y_a) { 
     var lengthOfPath = 0;
     var protectCells = [];
 
-    
-    while ((x_k != x_a) && (y_k != y_a)) {
+//js не видит while-loop :D
+
+    while ((x_k != x_a) || (y_k != y_a)) {
 
         if (x_k < x_a) {
             x_k++;
@@ -241,13 +241,13 @@ function CheckPathLength (x_k, y_k, x_a, y_a) {
         }
 
         if (Point(x_k,y_k,0,0).hasClass('navigate')) {
-            //protectCells.push(Point(x_k,y_k,0,0));
             protectCells.push(x_k.toString() + y_k);
             lengthOfPath++;
         }
     }
 
-    cellsCanMove = protectCells.slice(0); //копируем массив
+    cellsCanMoveWhenShah = protectCells.slice(0); //копируем массив
+    cellsCanMoveWhenShah.push(x_a.toString() +y_a); //фигура-агрессов всегда доступна для атаки
     return lengthOfPath;
 }
 
@@ -272,7 +272,6 @@ function MateCheck (color_a, x_a, y_a) {
     }
 
     var goalCellsOfKing = []; //массив для возможных ходов короля
-    //var figuresCanProtect = []; //массив фигур, которые могут защитить
 
     var xCordOfAttackedKing;
     var yCordOfAttackedKing;
@@ -280,6 +279,8 @@ function MateCheck (color_a, x_a, y_a) {
     //длины путей до и после защиты
     var pathLengthBeforeProtect; 
     var pathLengthAfterProtect;
+
+    //var cellsCanAttackWhenShah = [];
 
     if (color_a == 'white') { //если цвет агрессора белый, то атакуемых король - черный
         xCordOfAttackedKing = xCordBlackKing;
@@ -357,7 +358,7 @@ function MateCheck (color_a, x_a, y_a) {
 
 
                 if ((currentFigureColor == color_a)) {
-                    Navigate(i,j,currentFigureType,color_a); //прокладываем путь для каждой фигуры цвета агрессора
+                    Navigate(parseInt(i),parseInt(j),currentFigureType,color_a); //прокладываем путь для каждой фигуры цвета агрессора
                     for (var m = 0; m < goalCellsOfKing.length; m++ ) {
                         if (goalCellsOfKing[m].hasClass('navigate')) {
                             goalCellsOfKing.splice(m,1); //удаляем вариант хода короля
@@ -368,16 +369,16 @@ function MateCheck (color_a, x_a, y_a) {
             
                 //если фигура относится к команде защитника
                 if (currentFigureColor != color_a && currentFigureType != 'king') {
-                    Navigate(x_a,y_a,type_a,color_a); //прокладываем путь фигуры -агрессора
-                    pathLengthBeforeProtect = CheckPathLength(xCordOfAttackedKing, yCordOfAttackedKing, x_a, y_a); //посчитали длину пути  до защиты
-                    Navigate(i,j,currentFigureType,currentFigureColor); //прокладываем путь фигуры - защитника
-                    pathLengthAfterProtect = CheckPathLength(xCordOfAttackedKing, yCordOfAttackedKing,x_a,y_a);
+                    Navigate(parseInt(x_a),parseInt(y_a),type_a,color_a); //прокладываем путь фигуры -агрессора
+                    pathLengthBeforeProtect = CheckPathLength(parseInt(xCordOfAttackedKing), parseInt(yCordOfAttackedKing), parseInt(x_a), parseInt(y_a)); //посчитали длину пути  до защиты
+                    Navigate(parseInt(i),parseInt(j),currentFigureType,currentFigureColor); //прокладываем путь фигуры - защитника
+                    pathLengthAfterProtect = CheckPathLength(parseInt(xCordOfAttackedKing), parseInt(yCordOfAttackedKing),parseInt(x_a), parseInt(y_a));
 
                     if (cell_a.hasClass('attack') || pathLengthBeforeProtect > pathLengthAfterProtect) {
                         figuresCanProtect.push(currentFigure.attr('id'));
+                        //cellsCanAttackWhenShah.push(i.toString()+j);
                     }
                     RemoveClasses();
-
                 }   
             }                    
         }
@@ -389,7 +390,6 @@ function MateCheck (color_a, x_a, y_a) {
     else {
         return false;
     }
-    
 }
 
 function PawnToQueen(where, figure){
@@ -660,117 +660,261 @@ function ShahCheck(cell,color) {
 //вынес подсветку логики ладьи и слона,
 //т.к. их логика используется еще и ферзем
 function RookMoveLogic(x,y,color){
-    //подсветка предлагаемых ячеек ниже фигуры
-    for (var i = x; i < 9; i++) {
-        var goalCell = Point(i,y,1,0);
-        if (IsEmpty(goalCell)) {
-            goalCell.toggleClass('navigate');
-        } else {
-            if ($(goalCell).children().attr('color') != color) {
-                goalCell.toggleClass('attack');
+    
+    if (!Shah) {
+        //подсветка предлагаемых ячеек ниже фигуры
+        for (var i = x; i < 9; i++) {
+            var goalCell = Point(i,y,1,0);
+            if (IsEmpty(goalCell)) {
+                goalCell.toggleClass('navigate');
+            } else {
+                if ($(goalCell).children().attr('color') != color) {
+                    goalCell.toggleClass('attack');
+                }
+                break;
             }
-            break;
-        }
 
-    }
-    //выше фигуры
-    for (var i = x; i > 0; i--) {
-        var goalCell = Point(i,y,-1,0);
-        if (IsEmpty(goalCell)) {
-            goalCell.toggleClass('navigate');
-        } else {
-            if ($(goalCell).children().attr('color') != color) {
-                goalCell.toggleClass('attack');
-            }
-            break;
         }
+        //выше фигуры
+        for (var i = x; i > 0; i--) {
+            var goalCell = Point(i,y,-1,0);
+            if (IsEmpty(goalCell)) {
+                goalCell.toggleClass('navigate');
+            } else {
+                if ($(goalCell).children().attr('color') != color) {
+                    goalCell.toggleClass('attack');
+                }
+                break;
+            }
 
-    }
-    //правее фигуры
-    for (var j = y; j < 9; j++) {
-        var goalCell = Point(x,j,0,1)
-        if (IsEmpty(goalCell)) {
-            goalCell.toggleClass('navigate');
-        } else {
-            if ($(goalCell).children().attr('color') != color) {
-                goalCell.toggleClass('attack');
+        }
+        //правее фигуры
+        for (var j = y; j < 9; j++) {
+            var goalCell = Point(x,j,0,1)
+            if (IsEmpty(goalCell)) {
+                goalCell.toggleClass('navigate');
+            } else {
+                if ($(goalCell).children().attr('color') != color) {
+                    goalCell.toggleClass('attack');
+                }
+                break;
             }
-            break;
+        }
+        //левее фигуры
+        for (var j = y; j > 0; j--) {
+            var goalCell = Point(x,j,0,-1);
+            if (IsEmpty(goalCell)) {
+                goalCell.toggleClass('navigate');
+            } else {
+                if ($(goalCell).children().attr('color') != color) {
+                    goalCell.toggleClass('attack');
+                }
+                break;
+            }
         }
     }
-    //левее фигуры
-    for (var j = y; j > 0; j--) {
-        var goalCell = Point(x,j,0,-1);
-        if (IsEmpty(goalCell)) {
-            goalCell.toggleClass('navigate');
-        } else {
-            if ($(goalCell).children().attr('color') != color) {
-                goalCell.toggleClass('attack');
+    else {
+        //подсветка предлагаемых ячеек ниже фигуры
+        for (var i = x; i < 9; i++) {
+            var goalCell = Point(i,y,1,0);
+            var gc_xy = (i+1).toString() + y;
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
             }
-            break;
+            
+
         }
-    }
+        //выше фигуры
+        for (var i = x; i > 0; i--) {
+            var goalCell = Point(i,y,-1,0);
+            var gc_xy = (i-1).toString() + y;
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
+        }
+        //правее фигуры
+        for (var j = y; j < 9; j++) {
+            var goalCell = Point(x,j,0,1)
+            var gc_xy = x.toString() + (j+1);
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
+        }
+        //левее фигуры
+        for (var j = y; j > 0; j--) {
+            var goalCell = Point(x,j,0,-1);
+            var gc_xy = x.toString() + (j-1);
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
+        }
+    }  
 }
 function BitshopMoveLogic(x,y,color){
-    //goalCell 1-4 - это четыре разных направления возможного движения слона
-    //не придумал, как можно реализовать одним циклом, поэтому 4
+    
+    if (!Shah) {
+        //goalCell 1-4 - это четыре разных направления возможного движения слона
+        //не придумал, как можно реализовать одним циклом, поэтому 4
 
-    //юго-восток
-    for (var i = 1; i < 9; i++) {
-        var goalCell1 = Point(x,y,i,i);
-        if (IsEmpty(goalCell1)) {
-            goalCell1.toggleClass('navigate');
-        } else  {
-            if ($(goalCell1).children().attr('color') != color) {
-                goalCell1.toggleClass('attack');
-                //ShahCheck(goalCell1, color); //проверка на шах
+        //юго-восток
+        for (var i = 1; i < 9; i++) {
+            var goalCell1 = Point(x,y,i,i);
+            if (IsEmpty(goalCell1)) {
+                goalCell1.toggleClass('navigate');
+            } else  {
+                if ($(goalCell1).children().attr('color') != color) {
+                    goalCell1.toggleClass('attack');
+                    //ShahCheck(goalCell1, color); //проверка на шах
+                }
+                break;
             }
-            break;
+        }
+
+        //юго-запад
+        for (var i = 1; i < 9; i++) {
+            var goalCell2 = Point(x,y,i,-i);
+            if (IsEmpty(goalCell2)) {
+                goalCell2.toggleClass('navigate');
+            } else {
+                if ($(goalCell2).children().attr('color') != color) {
+                    goalCell2.toggleClass('attack');
+                    //ShahCheck(goalCell2, color); //проверка на шах
+                }
+                break;
+            }
+        }
+
+        //с-в
+        for (var i = 1; i < 9; i++) {
+            var goalCell3 = Point(x,y,-i,i)
+            if (IsEmpty(goalCell3)) {
+                goalCell3.toggleClass('navigate');
+            } else {
+                if ($(goalCell3).children().attr('color') != color) {
+                    goalCell3.toggleClass('attack');
+                    //ShahCheck(goalCell3, color); //проверка на шах
+                }
+                break;
+            }
+        }
+
+        //с-з
+        for (var i = 1; i < 9; i++) {
+            var goalCell4 = Point(x,y,-i,-i);
+            if (IsEmpty(goalCell4)) {
+                goalCell4.toggleClass('navigate');
+            } else {
+                if ($(goalCell4).children().attr('color') != color) {
+                    goalCell4.toggleClass('attack');
+                    //ShahCheck(goalCell4, color); //проверка на шах
+                }
+                break;
+            }
+        }
+    } else {
+        //goalCell 1-4 - это четыре разных направления возможного движения слона
+        //не придумал, как можно реализовать одним циклом, поэтому 4
+
+        //юго-восток
+        for (var i = 1; i < 9; i++) {
+            var goalCell = Point(x,y,i,i);
+            var gc_xy = (x+i).toString() + (y + i);
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else  {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
+        }
+
+        //юго-запад
+        for (var i = 1; i < 9; i++) {
+            var goalCell = Point(x,y,i,-i);
+            var gc_xy = (x+i).toString() + (y-i);
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else  {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
+        }
+
+        //с-в
+        for (var i = 1; i < 9; i++) {
+            var goalCell = Point(x,y,-i,i)
+            var gc_xy = (x-i).toString() + (y+i);
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else  {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
+        }
+
+        //с-з
+        for (var i = 1; i < 9; i++) {
+            var goalCell = Point(x,y,-i,-i)
+            var gc_xy = (x-i).toString() + (y-i);
+
+            if (in_array(gc_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                } else  {
+                    if ($(goalCell).children().attr('color') != color) {
+                        goalCell.toggleClass('attack');
+                    }
+                    break;
+                }
+            }
         }
     }
-
-    //юго-запад
-    for (var i = 1; i < 9; i++) {
-        var goalCell2 = Point(x,y,i,-i);
-        if (IsEmpty(goalCell2)) {
-            goalCell2.toggleClass('navigate');
-        } else {
-            if ($(goalCell2).children().attr('color') != color) {
-                goalCell2.toggleClass('attack');
-                //ShahCheck(goalCell2, color); //проверка на шах
-            }
-            break;
-        }
-    }
-
-    //с-в
-    for (var i = 1; i < 9; i++) {
-        var goalCell3 = Point(x,y,-i,i)
-        if (IsEmpty(goalCell3)) {
-            goalCell3.toggleClass('navigate');
-        } else {
-            if ($(goalCell3).children().attr('color') != color) {
-                goalCell3.toggleClass('attack');
-                //ShahCheck(goalCell3, color); //проверка на шах
-            }
-            break;
-        }
-    }
-
-    //с-з
-    for (var i = 1; i < 9; i++) {
-        var goalCell4 = Point(x,y,-i,-i);
-        if (IsEmpty(goalCell4)) {
-            goalCell4.toggleClass('navigate');
-        } else {
-            if ($(goalCell4).children().attr('color') != color) {
-                goalCell4.toggleClass('attack');
-                //ShahCheck(goalCell4, color); //проверка на шах
-            }
-            break;
-        }
-    }
-
 }
 
 
@@ -791,437 +935,639 @@ function IsEmpty (cell) {
     if (($(cell).find('img').length == 0) || !$(cell).children().is(':visible')) return true;
     return false;
 }
+
+function KingMoveLogic (x,y,color) {
+    var numberOfKingMoves = 0; //количество возможных ходов короля - мб для мата пригодится;
+
+    //все возможные шаги вокруг короля
+    var goalCell1 = Point(x,y,1,1);
+    var goalCell2 = Point(x,y,1,0);
+    var goalCell3 = Point(x,y,1,-1);
+    var goalCell4 = Point(x,y,0,-1);
+    var goalCell5 = Point(x,y,-1,-1);
+    var goalCell6 = Point(x,y,-1,0);
+    var goalCell7 = Point(x,y,-1,1);
+    var goalCell8 = Point(x,y,0,1);
+
+
+    if (((x == 1 || x == 8) && y == 5)) {
+
+        //кол-во пустых ячеек правее королей (для короткой рокировки)
+        var emptyCellsRight;
+        var emptyCellsLeft;
+        var tmpEmptyCells = 0;
+        for (var i = 1; i < 3; i++) {
+            //var tmpEmptyCells = 0;
+            if (color == 'black'){
+                var goalCell = Point (1,5,0,i);
+                if (IsEmpty(goalCell)) {
+                    tmpEmptyCells++;
+                }
+                else {
+                    break;
+                }
+            }
+            else if (color == 'white') {
+                var goalCell = Point (8,5,0,i);
+                if (IsEmpty(goalCell)) {
+                    tmpEmptyCells++;
+                }
+                else {
+                    break;
+                }
+            }
+            emptyCellsRight = tmpEmptyCells;
+        }
+        tmpEmptyCells = 0;
+
+        for (var i = 1; i < 4; i++) {
+            if (color == 'black') {
+                var goalCell = Point (1,5,0,-i);
+                if (IsEmpty(goalCell)) {
+                    tmpEmptyCells++;
+                }
+                else {
+                    break;
+                }
+            }
+            else if (color == 'white') {
+                var goalCell = Point (8,5,0,-i);
+                if (IsEmpty(goalCell)) {
+                    tmpEmptyCells++;
+                }
+                else {
+                    break;
+                }
+            }
+            emptyCellsLeft = tmpEmptyCells;
+        }
+
+        if (emptyCellsRight == 2) {
+            if ((color == 'white') && ((Point(8,5,0,3)).children().attr('type') == 'rook') && (Point(8,5,0,3)).children().attr('color') == color) { //на смещении стоит ладья нужного цвета
+                var goalCell = Point (8,5,0,2);
+                goalCell.addClass('castling');
+            }
+            else if ((color == 'black') && ((Point(1,5,0,3)).children().attr('type') == 'rook') && (Point(1,5,0,3)).children().attr('color') == color) {
+                var goalCell = Point (1,5,0,2);
+                goalCell.addClass('castling');
+            }
+        }
+
+        if (emptyCellsLeft == 3)  {
+            if ((color == 'white') && ((Point(8,5,0,-4)).children().attr('type') == 'rook') && (Point(8,5,0,-4)).children().attr('color') == color) {
+                var goalCell = Point (8,5,0,-2);
+                goalCell.addClass('castling');
+            }
+            else if ((color == 'black') && ((Point(1,5,0,-4)).children().attr('type') == 'rook') && (Point(1,5,0,-4)).children().attr('color') == color) {
+                var goalCell = Point (1,5,0,-2);
+                goalCell.addClass('castling');
+            }
+        }
+    }
+
+    //переменные для проверки возможности хода и атаки клетки
+    var goalCell1_go = goalCell2_go = goalCell3_go = goalCell4_go =goalCell5_go = goalCell6_go = goalCell7_go = goalCell8_go = false;
+    var goalCell1_attack = goalCell2_attack = goalCell3_attack = goalCell4_attack =goalCell5_attack = goalCell6_attack = goalCell7_attack = goalCell8_attack = false;
+
+
+
+    if ((parseInt(x)+1 < 9) && (parseInt(y)+1 < 9)) {
+        if (IsEmpty(goalCell1) && (!ShahCheckBeforeKingMove(parseInt(x)+1,parseInt(y)+1,color))) {
+            //goalCell1.toggleClass('navigate');
+            goalCell1_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell1)) && ($(goalCell2).children().attr('color') != color)) {
+                //goalCell1.toggleClass('attack');
+                goalCell1_attack = true;
+            }      
+        }
+    }
+       
+
+    if (parseInt(x)+1 < 9) {
+        if ((IsEmpty(goalCell2)) && (!ShahCheckBeforeKingMove(parseInt(x)+1,parseInt(y),color))) {
+            //goalCell2.toggleClass('navigate');
+            goalCell2_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell2)) && ($(goalCell2).children().attr('color') != color)) {
+                //goalCell2.toggleClass('attack');
+                goalCell2_attack = true;
+            }
+        }
+    }
+
+    if ((parseInt(x)+1 < 9) && (parseInt(y)-1 > 0)) {
+        if ((IsEmpty(goalCell3)) && (!ShahCheckBeforeKingMove(parseInt(x)+1,parseInt(y)-1,color))) {
+            //goalCell3.toggleClass('navigate');
+            goalCell3_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell3)) && ($(goalCell3).children().attr('color') != color)) {
+                //goalCell3.toggleClass('attack');
+                goalCell3_attack = true;
+
+            }
+        }
+    }
+
+    if (parseInt(y)-1 > 0) {
+        if ((IsEmpty(goalCell4)) && (!ShahCheckBeforeKingMove(parseInt(x),parseInt(y)-1,color))) {
+            //goalCell4.toggleClass('navigate');
+            goalCell4_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell4)) && ($(goalCell4).children().attr('color') != color)) {
+                //goalCell4.toggleClass('attack');
+                goalCell4_attack = true;
+            }
+        }
+    }
+
+    if ((parseInt(x)-1 > 0) && (parseInt(y)-1 > 0)) {
+        if ((IsEmpty(goalCell5)) && (!ShahCheckBeforeKingMove(parseInt(x)-1,parseInt(y)-1,color))) {
+            //goalCell5.toggleClass('navigate');
+            goalCell5_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell5)) && ($(goalCell5).children().attr('color') != color)) {
+                //goalCell5.toggleClass('attack');
+                goalCell5_attack = true;
+            }
+        }
+    }
+
+    if (parseInt(x)-1>0)  {
+        if ((IsEmpty(goalCell6)) && (!ShahCheckBeforeKingMove(parseInt(x)-1,parseInt(y),color))) {
+         //   goalCell6.toggleClass('navigate');
+            goalCell6_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell6)) && ($(goalCell6).children().attr('color') != color)) {
+                //goalCell6.toggleClass('attack');
+                goalCell6_attack = true;
+            }
+        }
+    }
+
+    if ((parseInt(x)-1 > 0) && (parseInt(y)+1 < 9 )) {
+        if ((IsEmpty(goalCell7)) && (!ShahCheckBeforeKingMove(parseInt(x)-1,parseInt(y)+1,color))){
+            //goalCell7.toggleClass('navigate');
+            goalCell7_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell7)) && ($(goalCell7).children().attr('color') != color)) {
+                //goalCell7.toggleClass('attack');
+                goalCell7_attack = true;
+            }
+        }
+    }
+
+    if (parseInt(y)+1 <9) {
+        if ((IsEmpty(goalCell8)) && (!ShahCheckBeforeKingMove(parseInt(x),parseInt(y)+1,color))) {
+            //goalCell8.toggleClass('navigate');
+            goalCell8_go = true;
+        }
+        else  {
+            if ((!IsEmpty(goalCell3)) && ($(goalCell3).children().attr('color') != color)) {
+                //goalCell8.toggleClass('attack');
+                goalCell8_attack = true;
+            }
+        }
+    }
+
+    //подсветка доступных для хода клеток
+    if (goalCell1_go) {
+        goalCell1.addClass('navigate');
+    }
+    if (goalCell2_go) {
+        goalCell2.addClass('navigate');
+    }
+    if (goalCell3_go) {
+        goalCell3.addClass('navigate');
+    }
+    if (goalCell4_go) {
+        goalCell4.addClass('navigate');
+    }
+    if (goalCell5_go) {
+        goalCell5.addClass('navigate');
+    }
+    if (goalCell6_go) {
+        goalCell6.addClass('navigate');
+    }
+    if (goalCell7_go) {
+        goalCell7.addClass('navigate');
+    }
+    if (goalCell8_go) {
+        goalCell8.addClass('navigate');
+    }
+
+    //подсветка атаки ячеек
+
+    if (goalCell1_attack) {
+        goalCell1.addClass('attack');
+    }   
+    if (goalCell2_attack) {
+        goalCell2.addClass('attack');
+    }        
+    if (goalCell3_attack) {
+        goalCell3.addClass('attack');
+    }        
+    if (goalCell4_attack) {
+        goalCell4.addClass('attack');
+    }        
+    if (goalCell5_attack) {
+        goalCell5.addClass('attack');
+    }       
+    if (goalCell6_attack) {
+        goalCell6.addClass('attack');
+    }        
+    if (goalCell7_attack) {
+        goalCell7.addClass('attack');
+    }        
+    if (goalCell8_attack) {
+        goalCell8.addClass('attack');
+    }             
+}
+
 //отрисовка логики ходов для фигур
 function Navigate (x,y,type,color) {
     
-    //пешка
+    if (!Shah) {
+        //пешка
 
-    if (type == 'pawn')  {
-        if (color == 'white') {
-            var goalCell = Point(x,y,1,0);
-            var attackCell1 = Point(x,y,1,1); //правая под атакой белой
-            var attackCell2 = Point(x,y,1,-1); //левая под атакой белой
+        if (type == 'pawn')  {
+            if (color == 'white') {
+                var goalCell = Point(x,y,1,0);
+                var attackCell1 = Point(x,y,1,1); //правая под атакой белой
+                var attackCell2 = Point(x,y,1,-1); //левая под атакой белой
 
-            if (IsEmpty(goalCell)) {
-                goalCell.toggleClass('navigate');
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                }
+
+                if (x == 2) { //если это первый шаг этой пешки
+                    var goalCell_1 = Point(x,y,+2,0);
+                    if (IsEmpty(goalCell_1)) {
+                        goalCell_1.toggleClass('navigate'); //подсвечиваем его
+                    }
+                }
+
+                //если в ячейке по диагонали есть фигура и она противоположного цвета
+                if (!IsEmpty(attackCell1) && $(attackCell1).children().attr('color') != color) {
+                    attackCell1.toggleClass('attack')
+                }
+                if (!IsEmpty(attackCell2) && $(attackCell2).children().attr('color') != color) {
+                    attackCell2.toggleClass('attack')
+                }
+
+
             }
+            else if (color == 'black') {
+                var goalCell = Point(x,y,-1,0); //целевая ячейка черной пешки
+                var attackCell1 = Point(x,y,-1,1); //правая под атакой черной
+                var attackCell2 = Point(x,y,-1,-1);//левая под атакой черной
 
-            if (x == 2) { //если это первый шаг этой пешки
-                var goalCell_1 = Point(x,y,+2,0);
-                if (IsEmpty(goalCell_1)) {
-                    goalCell_1.toggleClass('navigate'); //подсвечиваем его
+                if (IsEmpty(goalCell)) {
+                    goalCell.toggleClass('navigate');
+                }
+
+                if (x == 7) { //если это первый шаг этой пешки
+                    var goalCell_1 = Point(x,y,-2,0); //добавляем ей шаг на две клетки вперед
+                    if (IsEmpty(goalCell_1)) {
+                        goalCell_1.toggleClass('navigate'); //подсвечиваем его
+                    }
+                }
+                //если в ячейке по диагонали есть фигура и она противоположного цвета
+                if (!IsEmpty(attackCell1) && $(attackCell1).children().attr('color') != color) {
+                    attackCell1.toggleClass('attack')
+                }
+                if (!IsEmpty(attackCell2) && $(attackCell2).children().attr('color') != color) {
+                    attackCell2.toggleClass('attack')
+                }
+            }
+        }
+        //конь
+        else if (type == 'knight') {
+            //goalCell1-8 - возможные варианты хода коня
+
+            //выше коня
+            var goalCell1 = Point(x,y,-2,1);
+            var goalCell2 = Point(x,y,-2,-1);
+            var goalCell3 = Point(x,y,-1,-2);
+            var goalCell4 = Point(x,y,-1,2);
+            //ниже коня
+            var goalCell5 = Point(x,y,1,2);
+            var goalCell6 = Point(x,y,1,-2);
+            var goalCell7 = Point(x,y,2,1);
+            var goalCell8 = Point(x,y,2,-1);
+
+            //проверка всех возможных для хода ячеек на присутствие или отсутствие вражеской фигуры
+            if (IsEmpty(goalCell1)) {
+                goalCell1.toggleClass('navigate');
+            }
+            else {
+                //если фигура, которая там стоит - чужая, подсветить атакой
+                if ($(goalCell1).children().attr('color') != color) {
+                    goalCell1.toggleClass('attack');
                 }
             }
 
-            //если в ячейке по диагонали есть фигура и она противоположного цвета
-            if (!IsEmpty(attackCell1) && $(attackCell1).children().attr('color') != color) {
-                attackCell1.toggleClass('attack')
+            if (IsEmpty(goalCell2)) {
+                goalCell2.toggleClass('navigate');
+
             }
-            if (!IsEmpty(attackCell2) && $(attackCell2).children().attr('color') != color) {
-                attackCell2.toggleClass('attack')
-            }
-
-
-        }
-        else if (color == 'black') {
-            var goalCell = Point(x,y,-1,0); //целевая ячейка черной пешки
-            var attackCell1 = Point(x,y,-1,1); //правая под атакой черной
-            var attackCell2 = Point(x,y,-1,-1);//левая под атакой черной
-
-            if (IsEmpty(goalCell)) {
-                goalCell.toggleClass('navigate');
-            }
-
-            if (x == 7) { //если это первый шаг этой пешки
-                var goalCell_1 = Point(x,y,-2,0); //добавляем ей шаг на две клетки вперед
-                if (IsEmpty(goalCell_1)) {
-                    goalCell_1.toggleClass('navigate'); //подсвечиваем его
+            else {
+                if ($(goalCell2).children().attr('color') != color) {
+                    goalCell2.toggleClass('attack');
                 }
             }
-            //если в ячейке по диагонали есть фигура и она противоположного цвета
-            if (!IsEmpty(attackCell1) && $(attackCell1).children().attr('color') != color) {
-                attackCell1.toggleClass('attack')
+
+            if (IsEmpty(goalCell3)) {
+                goalCell3.toggleClass('navigate');
             }
-            if (!IsEmpty(attackCell2) && $(attackCell2).children().attr('color') != color) {
-                attackCell2.toggleClass('attack')
+            else {
+                if ($(goalCell3).children().attr('color') != color) {
+                    goalCell3.toggleClass('attack');
+                }
             }
+
+            if (IsEmpty(goalCell4)) {
+                goalCell4.toggleClass('navigate');
+            }
+            else {
+                if ($(goalCell4).children().attr('color') != color) {
+                    goalCell4.toggleClass('attack');
+                }
+            }
+
+            if (IsEmpty(goalCell5)) {
+                goalCell5.toggleClass('navigate');
+            }
+            else {
+                if ($(goalCell5).children().attr('color') != color) {
+                    goalCell5.toggleClass('attack');
+                }
+            }
+
+            if (IsEmpty(goalCell6)) {
+                goalCell6.toggleClass('navigate');
+            }
+            else {
+                if ($(goalCell6).children().attr('color') != color) {
+                    goalCell6.toggleClass('attack');
+                }
+            }
+
+            if (IsEmpty(goalCell7)) {
+                goalCell7.toggleClass('navigate');
+            }
+            else {
+                if ($(goalCell7).children().attr('color') != color) {
+                    goalCell7.toggleClass('attack');
+                }
+            }
+
+            if (IsEmpty(goalCell8)) {
+                goalCell8.toggleClass('navigate');
+            }
+            else {
+                if ($(goalCell8).children().attr('color') != color) {
+                    goalCell8.toggleClass('attack');
+                }
+            }
+
         }
+        //ладья
+        else if (type == 'rook') {
+            RookMoveLogic(x,y,color);
+        }
+        //слон
+        else if (type == 'bitshop') {
+            BitshopMoveLogic(parseInt(x),parseInt(y),color);
+        }
+        //ферзь
+        else if (type == 'queen') {
+
+            //логика ферзя = логика ладьи+логика слона
+
+            RookMoveLogic(parseInt(x),parseInt(y),color);
+            BitshopMoveLogic(parseInt(x),parseInt(y),color);
+        }
+        //король
+        else if (type == 'king') {
+            KingMoveLogic (x,y,color);
+        }
+
+            
     }
-    //конь
-    else if (type == 'knight') {
-        //goalCell1-8 - возможные варианты хода коня
+    else if (Shah) {
+        if (type == 'pawn')  {
+            if (color == 'white') {
+                var goalCell = Point(x,y,1,0);
+                var attackCell1 = Point(x,y,1,1); //правая под атакой белой
+                var attackCell2 = Point(x,y,1,-1); //левая под атакой белой
 
-        //выше коня
-        var goalCell1 = Point(x,y,-2,1);
-        var goalCell2 = Point(x,y,-2,-1);
-        var goalCell3 = Point(x,y,-1,-2);
-        var goalCell4 = Point(x,y,-1,2);
-        //ниже коня
-        var goalCell5 = Point(x,y,1,2);
-        var goalCell6 = Point(x,y,1,-2);
-        var goalCell7 = Point(x,y,2,1);
-        var goalCell8 = Point(x,y,2,-1);
+                var gc_xy = (x+1).toString()+y;
+                var ac1_xy = (x+1).toString()+(y+1);
+                var ac2_xy = (x+1).toString()+(y-1);
 
-        //проверка всех возможных для хода ячеек на присутствие или отсутствие вражеской фигуры
-        if (IsEmpty(goalCell1)) {
-            goalCell1.toggleClass('navigate');
-        }
-        else {
-            //если фигура, которая там стоит - чужая, подсветить атакой
-            if ($(goalCell1).children().attr('color') != color) {
-                goalCell1.toggleClass('attack');
-            }
-        }
+                if (IsEmpty(goalCell) && (in_array(gc_xy, cellsCanMoveWhenShah)))  {
+                    goalCell.toggleClass('navigate');
+                }
 
-        if (IsEmpty(goalCell2)) {
-            goalCell2.toggleClass('navigate');
+                if (x == 2) { //если это первый шаг этой пешки
+                    var goalCell_1 = Point(x,y,2,0);
+                    var gc2_xy = (x+2).toString()+y;
 
-        }
-        else {
-            if ($(goalCell2).children().attr('color') != color) {
-                goalCell2.toggleClass('attack');
-            }
-        }
-
-        if (IsEmpty(goalCell3)) {
-            goalCell3.toggleClass('navigate');
-        }
-        else {
-            if ($(goalCell3).children().attr('color') != color) {
-                goalCell3.toggleClass('attack');
-            }
-        }
-
-        if (IsEmpty(goalCell4)) {
-            goalCell4.toggleClass('navigate');
-        }
-        else {
-            if ($(goalCell4).children().attr('color') != color) {
-                goalCell4.toggleClass('attack');
-            }
-        }
-
-        if (IsEmpty(goalCell5)) {
-            goalCell5.toggleClass('navigate');
-        }
-        else {
-            if ($(goalCell5).children().attr('color') != color) {
-                goalCell5.toggleClass('attack');
-            }
-        }
-
-        if (IsEmpty(goalCell6)) {
-            goalCell6.toggleClass('navigate');
-        }
-        else {
-            if ($(goalCell6).children().attr('color') != color) {
-                goalCell6.toggleClass('attack');
-            }
-        }
-
-        if (IsEmpty(goalCell7)) {
-            goalCell7.toggleClass('navigate');
-        }
-        else {
-            if ($(goalCell7).children().attr('color') != color) {
-                goalCell7.toggleClass('attack');
-            }
-        }
-
-        if (IsEmpty(goalCell8)) {
-            goalCell8.toggleClass('navigate');
-        }
-        else {
-            if ($(goalCell8).children().attr('color') != color) {
-                goalCell8.toggleClass('attack');
-            }
-        }
-
-    }
-    //ладья
-    else if (type == 'rook') {
-        RookMoveLogic(x,y,color);
-    }
-    //слон
-    else if (type == 'bitshop') {
-        BitshopMoveLogic(x,y,color);
-    }
-    //ферзь
-    else if (type == 'queen') {
-
-        //логика ферзя = логика ладьи+логика слона
-
-        RookMoveLogic(x,y,color);
-        BitshopMoveLogic(x,y,color);
-    }
-    //король
-    else if (type == 'king') {
-
-        var numberOfKingMoves = 0; //количество возможных ходов короля - мб для мата пригодится;
-
-        //все возможные шаги вокруг короля
-        var goalCell1 = Point(x,y,1,1);
-        var goalCell2 = Point(x,y,1,0);
-        var goalCell3 = Point(x,y,1,-1);
-        var goalCell4 = Point(x,y,0,-1);
-        var goalCell5 = Point(x,y,-1,-1);
-        var goalCell6 = Point(x,y,-1,0);
-        var goalCell7 = Point(x,y,-1,1);
-        var goalCell8 = Point(x,y,0,1);
-
-
-        if (((x == 1 || x == 8) && y == 5)) {
-
-            //кол-во пустых ячеек правее королей (для короткой рокировки)
-            var emptyCellsRight;
-            var emptyCellsLeft;
-            var tmpEmptyCells = 0;
-            for (var i = 1; i < 3; i++) {
-                //var tmpEmptyCells = 0;
-                if (color == 'black'){
-                    var goalCell = Point (1,5,0,i);
-                    if (IsEmpty(goalCell)) {
-                        tmpEmptyCells++;
-                    }
-                    else {
-                        break;
+                    if (IsEmpty(goalCell_1) && in_array(gc2_xy, cellsCanMoveWhenShah)) {
+                        goalCell_1.toggleClass('navigate'); //подсвечиваем его
                     }
                 }
-                else if (color == 'white') {
-                    var goalCell = Point (8,5,0,i);
-                    if (IsEmpty(goalCell)) {
-                        tmpEmptyCells++;
+
+                //если в ячейке по диагонали есть фигура и она противоположного цвета
+                if (in_array(ac1_xy, cellsCanMoveWhenShah) && !IsEmpty(attackCell1) && $(attackCell1).children().attr('color') != color) {
+                    attackCell1.toggleClass('attack')
+                }
+                if (in_array(ac2_xy, cellsCanMoveWhenShah) && !IsEmpty(attackCell2) && $(attackCell2).children().attr('color') != color) {
+                    attackCell2.toggleClass('attack')
+                }
+
+
+            }
+            else if (color == 'black') {
+                var goalCell = Point(x,y,-1,0); //целевая ячейка черной пешки
+                var attackCell1 = Point(x,y,-1,1); //правая под атакой черной
+                var attackCell2 = Point(x,y,-1,-1);//левая под атакой черной
+
+                var gc_xy = (x-1).toString()+y;
+                var ac1_xy = (x-1).toString()+(y+1);
+                var ac2_xy = (x-1).toString()+(y-1);
+
+                if (IsEmpty(goalCell) && (in_array(gc_xy, cellsCanMoveWhenShah)))  {
+                    goalCell.toggleClass('navigate');
+                }
+
+                if (x == 2) { //если это первый шаг этой пешки
+                    var goalCell_1 = Point(x,y,-2,0);
+                    var gc2_xy = (x+2).toString()+y;
+
+                    if (IsEmpty(goalCell_1) && in_array(gc2_xy, cellsCanMoveWhenShah)) {
+                        goalCell_1.toggleClass('navigate'); //подсвечиваем его
                     }
-                    else {
-                        break;
+                }
+
+                //если в ячейке по диагонали есть фигура и она противоположного цвета
+                if (in_array(ac1_xy, cellsCanMoveWhenShah) && !IsEmpty(attackCell1) && $(attackCell1).children().attr('color') != color) {
+                    attackCell1.toggleClass('attack')
+                }
+                if (in_array(ac2_xy, cellsCanMoveWhenShah) && !IsEmpty(attackCell2) && $(attackCell2).children().attr('color') != color) {
+                    attackCell2.toggleClass('attack')
+                }
+            }
+        }
+        else if (type == 'knight') {
+            //goalCell1-8 - возможные варианты хода коня
+
+            //выше коня
+            var goalCell1 = Point(x,y,-2,1);
+            var goalCell2 = Point(x,y,-2,-1);
+            var goalCell3 = Point(x,y,-1,-2);
+            var goalCell4 = Point(x,y,-1,2);
+            //ниже коня
+            var goalCell5 = Point(x,y,1,2);
+            var goalCell6 = Point(x,y,1,-2);
+            var goalCell7 = Point(x,y,2,1);
+            var goalCell8 = Point(x,y,2,-1);
+
+            var gc1_xy = (x-2).toString()+(y+1);
+            var gc2_xy = (x-2).toString()+(y-1);
+            var gc3_xy = (x-1).toString()+(y-2);
+            var gc4_xy = (x-1).toString()+(y+2);
+
+            var gc5_xy = (x+1).toString()+(y+2);
+            var gc6_xy = (x+1).toString()+(y-2);
+            var gc7_xy = (x+2).toString()+(y+1);
+            var gc8_xy = (x+2).toString()+(y-1);
+
+            //проверка всех возможных для хода ячеек на присутствие или отсутствие вражеской фигуры и способность хода защитить короля от шаха
+            
+            if (in_array(gc1_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell1)) {
+                    goalCell1.toggleClass('navigate');
+                }
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell1).children().attr('color') != color) {
+                        goalCell1.toggleClass('attack');
                     }
-                }
-                emptyCellsRight = tmpEmptyCells;
+                } 
             }
-            tmpEmptyCells = 0;
+            
 
-            for (var i = 1; i < 4; i++) {
-                if (color == 'black') {
-                    var goalCell = Point (1,5,0,-i);
-                    if (IsEmpty(goalCell)) {
-                        tmpEmptyCells++;
+            if (in_array(gc2_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell2)) {
+                    goalCell2.toggleClass('navigate');
+                }
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell2).children().attr('color') != color) {
+                        goalCell2.toggleClass('attack');
                     }
-                    else {
-                        break;
+                } 
+            }
+
+            if (in_array(gc3_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell3)) {
+                    goalCell3.toggleClass('navigate');
+                }
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell3).children().attr('color') != color) {
+                        goalCell3.toggleClass('attack');
                     }
+                } 
+            }
+
+            if (in_array(gc4_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell4)) {
+                    goalCell4.toggleClass('navigate');
                 }
-                else if (color == 'white') {
-                    var goalCell = Point (8,5,0,-i);
-                    if (IsEmpty(goalCell)) {
-                        tmpEmptyCells++;
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell4).children().attr('color') != color) {
+                        goalCell4.toggleClass('attack');
                     }
-                    else {
-                        break;
+                } 
+            }
+
+
+            if (in_array(gc5_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell5)) {
+                    goalCell5.toggleClass('navigate');
+                }
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell5).children().attr('color') != color) {
+                        goalCell5.toggleClass('attack');
                     }
+                } 
+            }
+
+            if (in_array(gc6_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell6)) {
+                    goalCell6.toggleClass('navigate');
                 }
-                emptyCellsLeft = tmpEmptyCells;
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell6).children().attr('color') != color) {
+                        goalCell6.toggleClass('attack');
+                    }
+                } 
             }
 
-            if (emptyCellsRight == 2) {
-                if ((color == 'white') && ((Point(8,5,0,3)).children().attr('type') == 'rook') && (Point(8,5,0,3)).children().attr('color') == color) { //на смещении стоит ладья нужного цвета
-                    var goalCell = Point (8,5,0,2);
-                    goalCell.addClass('castling');
+            if (in_array(gc7_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell7)) {
+                    goalCell7.toggleClass('navigate');
                 }
-                else if ((color == 'black') && ((Point(1,5,0,3)).children().attr('type') == 'rook') && (Point(1,5,0,3)).children().attr('color') == color) {
-                    var goalCell = Point (1,5,0,2);
-                    goalCell.addClass('castling');
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell7).children().attr('color') != color) {
+                        goalCell7.toggleClass('attack');
+                    }
+                } 
+            }
+
+            if (in_array(gc8_xy, cellsCanMoveWhenShah)) {
+                if (IsEmpty(goalCell8)) {
+                    goalCell8.toggleClass('navigate');
                 }
-            }
-
-            if (emptyCellsLeft == 3)  {
-                if ((color == 'white') && ((Point(8,5,0,-4)).children().attr('type') == 'rook') && (Point(8,5,0,-4)).children().attr('color') == color) {
-                    var goalCell = Point (8,5,0,-2);
-                    goalCell.addClass('castling');
-                }
-                else if ((color == 'black') && ((Point(1,5,0,-4)).children().attr('type') == 'rook') && (Point(1,5,0,-4)).children().attr('color') == color) {
-                    var goalCell = Point (1,5,0,-2);
-                    goalCell.addClass('castling');
-                }
+                else {
+                    //если фигура, которая там стоит - чужая, подсветить атакой
+                    if ($(goalCell8).children().attr('color') != color) {
+                        goalCell8.toggleClass('attack');
+                    }
+                } 
             }
         }
-
-
-/*      var goalCell1 = Point(x,y,1,1);
-        var goalCell2 = Point(x,y,1,0);
-        var goalCell3 = Point(x,y,1,-1);
-        var goalCell4 = Point(x,y,0,-1);
-        var goalCell5 = Point(x,y,-1,-1);
-        var goalCell6 = Point(x,y,-1,0);
-        var goalCell7 = Point(x,y,-1,1);
-        var goalCell8 = Point(x,y,0,1);*/
-
-        //переменные для проверки возможности хода и атаки клетки
-        var goalCell1_go = goalCell2_go = goalCell3_go = goalCell4_go =goalCell5_go = goalCell6_go = goalCell7_go = goalCell8_go = false;
-        var goalCell1_attack = goalCell2_attack = goalCell3_attack = goalCell4_attack =goalCell5_attack = goalCell6_attack = goalCell7_attack = goalCell8_attack = false;
-
-
-
-        if ((parseInt(x)+1 < 9) && (parseInt(y)+1 < 9)) {
-            if (IsEmpty(goalCell1) && (!ShahCheckBeforeKingMove(parseInt(x)+1,parseInt(y)+1,color))) {
-                //goalCell1.toggleClass('navigate');
-                goalCell1_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell1)) && ($(goalCell2).children().attr('color') != color)) {
-                    //goalCell1.toggleClass('attack');
-                    goalCell1_attack = true;
-                }      
-            }
+        else if (type == 'rook') {
+            RookMoveLogic(parseInt(x),parseInt(y),color);
         }
-           
-
-        if (parseInt(x)+1 < 9) {
-            if ((IsEmpty(goalCell2)) && (!ShahCheckBeforeKingMove(parseInt(x)+1,parseInt(y),color))) {
-                //goalCell2.toggleClass('navigate');
-                goalCell2_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell2)) && ($(goalCell2).children().attr('color') != color)) {
-                    //goalCell2.toggleClass('attack');
-                    goalCell2_attack = true;
-                }
-            }
+        else if (type == 'bitshop') {
+            BitshopMoveLogic(parseInt(x),parseInt(y),color);
         }
-
-        if ((parseInt(x)+1 < 9) && (parseInt(y)-1 > 0)) {
-            if ((IsEmpty(goalCell3)) && (!ShahCheckBeforeKingMove(parseInt(x)+1,parseInt(y)-1,color))) {
-                //goalCell3.toggleClass('navigate');
-                goalCell3_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell3)) && ($(goalCell3).children().attr('color') != color)) {
-                    //goalCell3.toggleClass('attack');
-                    goalCell3_attack = true;
-
-                }
-            }
+        else if (type == 'queen') {
+            RookMoveLogic(parseInt(x),parseInt(y),color);
+            BitshopMoveLogic(parseInt(x),parseInt(y),color);
         }
-
-        if (parseInt(y)-1 > 0) {
-            if ((IsEmpty(goalCell4)) && (!ShahCheckBeforeKingMove(parseInt(x),parseInt(y)-1,color))) {
-                //goalCell4.toggleClass('navigate');
-                goalCell4_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell4)) && ($(goalCell4).children().attr('color') != color)) {
-                    //goalCell4.toggleClass('attack');
-                    goalCell4_attack = true;
-                }
-            }
+        else if (type == 'king') {
+            KingMoveLogic(parseInt(x),parseInt(y),color);
         }
-
-        if ((parseInt(x)-1 > 0) && (parseInt(y)-1 > 0)) {
-            if ((IsEmpty(goalCell5)) && (!ShahCheckBeforeKingMove(parseInt(x)-1,parseInt(y)-1,color))) {
-                //goalCell5.toggleClass('navigate');
-                goalCell5_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell5)) && ($(goalCell5).children().attr('color') != color)) {
-                    //goalCell5.toggleClass('attack');
-                    goalCell5_attack = true;
-                }
-            }
-        }
-
-        if (parseInt(x)-1>0)  {
-            if ((IsEmpty(goalCell6)) && (!ShahCheckBeforeKingMove(parseInt(x)-1,parseInt(y),color))) {
-             //   goalCell6.toggleClass('navigate');
-                goalCell6_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell6)) && ($(goalCell6).children().attr('color') != color)) {
-                    //goalCell6.toggleClass('attack');
-                    goalCell6_attack = true;
-                }
-            }
-        }
-
-        if ((parseInt(x)-1 > 0) && (parseInt(y)+1 < 9 )) {
-            if ((IsEmpty(goalCell7)) && (!ShahCheckBeforeKingMove(parseInt(x)-1,parseInt(y)+1,color))){
-                //goalCell7.toggleClass('navigate');
-                goalCell7_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell7)) && ($(goalCell7).children().attr('color') != color)) {
-                    //goalCell7.toggleClass('attack');
-                    goalCell7_attack = true;
-                }
-            }
-        }
-
-        if (parseInt(y)+1 <9) {
-            if ((IsEmpty(goalCell8)) && (!ShahCheckBeforeKingMove(parseInt(x),parseInt(y)+1,color))) {
-                //goalCell8.toggleClass('navigate');
-                goalCell8_go = true;
-            }
-            else  {
-                if ((!IsEmpty(goalCell3)) && ($(goalCell3).children().attr('color') != color)) {
-                    //goalCell8.toggleClass('attack');
-                    goalCell8_attack = true;
-                }
-            }
-        }
-
-        //подсветка доступных для хода клеток
-        if (goalCell1_go) {
-            goalCell1.addClass('navigate');
-        }
-        if (goalCell2_go) {
-            goalCell2.addClass('navigate');
-        }
-        if (goalCell3_go) {
-            goalCell3.addClass('navigate');
-        }
-        if (goalCell4_go) {
-            goalCell4.addClass('navigate');
-        }
-        if (goalCell5_go) {
-            goalCell5.addClass('navigate');
-        }
-        if (goalCell6_go) {
-            goalCell6.addClass('navigate');
-        }
-        if (goalCell7_go) {
-            goalCell7.addClass('navigate');
-        }
-        if (goalCell8_go) {
-            goalCell8.addClass('navigate');
-        }
-
-        //подсветка атаки ячеек
-
-        if (goalCell1_attack) {
-            goalCell1.addClass('attack');
-        }   
-        if (goalCell2_attack) {
-            goalCell2.addClass('attack');
-        }        
-        if (goalCell3_attack) {
-            goalCell3.addClass('attack');
-        }        
-        if (goalCell4_attack) {
-            goalCell4.addClass('attack');
-        }        
-        if (goalCell5_attack) {
-            goalCell5.addClass('attack');
-        }       
-        if (goalCell6_attack) {
-            goalCell6.addClass('attack');
-        }        
-        if (goalCell7_attack) {
-            goalCell7.addClass('attack');
-        }        
-        if (goalCell8_attack) {
-            goalCell8.addClass('attack');
-        }             
 
     }
 }
+    
 
 //движение фигуры соперником
 function MoveComp (figure, where) {
@@ -1246,8 +1592,20 @@ function MoveComp (figure, where) {
 
         if (IsShah(xCord,yCord, $(figure).attr('type'), $(figure).attr('color'))) {
             if (MateCheck(figureColor, xCord, yCord)) { //в мат передаем цвет фигуры-АГРЕССОРА и ее координаты
-                alert ('Shah and mate!');
-                socket.emit('finish');
+                
+                //socket.emit('finish');
+                ClearBoard();
+                /*
+                if (confirm('Congratulations! You win. One more game?')) {
+                    location.reload();
+                } else {
+                    window.close()
+                }*/
+                alert ('Shah and mate! You lose.');
+                window.close();
+                
+
+                //location.reload();
             } else {
                 alert ('Shah from '+ figureColor + ' ' + figureType);
                 Shah = true;
@@ -1277,8 +1635,10 @@ function MoveComp (figure, where) {
 
         if (IsShah(xCord,yCord, $(figure).attr('type'), $(figure).attr('color'))) {
             if (MateCheck(figureColor, xCord, yCord)) { //в мат передаем цвет фигуры-АГРЕССОРА и ее координаты
-                alert ('Shah and mate!');
-                socket.emit('finish');
+                
+                ClearBoard();
+                alert ('Shah and mate! You lose.');
+                window.close();
             } else {
                 alert ('Shah from '+ figureColor + ' ' + figureType);
                 Shah = true;
@@ -1321,6 +1681,12 @@ function Move (figure, where) {
             if (MateCheck(figureColor, xCord, yCord)) {
                 alert ('Shah and mate!');
                 socket.emit('finish');
+                ClearBoard();
+                if (confirm('Congratulations! You win. One more game?')) {
+                    location.reload();
+                } else {
+                    window.close()
+                }
             } else {
                 alert ('Shah from '+ figureColor + ' '+figureType);
             }
@@ -1367,8 +1733,11 @@ function Attack (attackedCell) {
             ClearBoard();
 
             socket.emit('finish'); //отправляем конец игры
-            alert('Congratulations! You win.');
-            location.reload();
+            if (confirm('Congratulations! You win. One more game?')) {
+                    location.reload();
+                } else {
+                    window.close()
+                }
 
         }
         //удаляем класс "атакуемая" и добавляем класс "навигация"
@@ -1395,7 +1764,7 @@ $(document).ready(function () {
         Shah = false;
 
         figuresCanProtect = [];
-        cellsCanMove = [];
+        cellsCanMoveWhenShah = [];
 
         if (color == 'white') {
             whiteMove = true;
@@ -1425,7 +1794,7 @@ $(document).ready(function () {
         var figure = Point(x,y,0,0).children();
         var goalCell = Point(x1,y1,0,0);
 
-        Navigate(x,y,typeOfFigure,colorOfFigure); //подсвечиваем допустимый маршрут (проверка на жульничество)
+        Navigate(parseInt(x),parseInt(y),typeOfFigure,colorOfFigure); //подсвечиваем допустимый маршрут (проверка на жульничество)
 
         if (MoveComp(figure, Point(x1,y1,0,0))) { //если можно сходить
             //InsertFigure(x1,y1,figure);
@@ -1435,15 +1804,17 @@ $(document).ready(function () {
         }
         canMove = true;        
     });
-
+/*
     socket.on('finish', function(){
-        console.log('lose catched!');
+        ClearBoard();
         alert('You lose!');
         window.close();
     });
+*/
 
     socket.on('disconnect', function() {
         alert('Competitor disconnected.');
+        ClearBoard();
         location.reload();
     });
 
@@ -1466,7 +1837,7 @@ $(document).ready(function () {
                     if (whiteMove && clFigureColor == 'white') {
                         CheckRed(this); //выделяем ячейку
                         //выделяем возможный вариант хода
-                        Navigate(clFigureX,clFigureY,clFigureType,clFigureColor);
+                        Navigate(parseInt(clFigureX),parseInt(clFigureY),clFigureType,clFigureColor);
                     } 
 
                     else if (whiteMove && clFigureColor != 'white') { //если ход белых, а фигура черная
@@ -1477,7 +1848,7 @@ $(document).ready(function () {
                     else if (!whiteMove && clFigureColor == 'black') {
                         CheckRed(this); //выделяем ячейку
                         //возможный вариант ходов
-                        Navigate(clFigureX,clFigureY,clFigureType,clFigureColor);
+                        Navigate(parseInt(clFigureX),parseInt(clFigureY),clFigureType,clFigureColor);
                         checked = true;
                     }
 
@@ -1490,7 +1861,7 @@ $(document).ready(function () {
                     if (whiteMove && clFigureColor == 'white' && ((in_array(clFigureID,figuresCanProtect)) || clFigureType == 'king')) {
                         CheckRed(this); //выделяем ячейку
                         //выделяем возможный вариант хода
-                        Navigate(clFigureX,clFigureY,clFigureType,clFigureColor);
+                        Navigate(parseInt(clFigureX),parseInt(clFigureY),clFigureType,clFigureColor);
                         console.log('Выбрана белая фигура из массива защитников!');
                     } 
 
@@ -1500,7 +1871,7 @@ $(document).ready(function () {
                     else if (!whiteMove && clFigureColor == 'black' && ((in_array(clFigureID,figuresCanProtect)) || clFigureType == 'king')) {
                         CheckRed(this); //выделяем ячейку
                         //возможный вариант ходов
-                        Navigate(clFigureX,clFigureY,clFigureType,clFigureColor);
+                        Navigate(parseInt(clFigureX),parseInt(clFigureY),clFigureType,clFigureColor);
                         console.log('Выбрана черная фигура из массива защитников!');
                     }
 
